@@ -1,610 +1,464 @@
 #!/usr/bin/env python3
-"""Generate Spring Boot + Spring Cloud training PPT."""
+"""Generate Spring Boot + Spring Cloud training PPT — 8-chapter structure."""
 
 from pptx import Presentation
-from pptx.util import Inches, Pt, Emu
+from pptx.util import Inches, Pt
 from pptx.dml.color import RGBColor
-from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+from pptx.enum.text import PP_ALIGN
 from pptx.enum.shapes import MSO_SHAPE
 
-# Colors
-SPRING_GREEN = RGBColor(0x6D, 0xB3, 0x3F)
-SPRING_DARK = RGBColor(0x34, 0x30, 0x2D)
-WHITE = RGBColor(0xFF, 0xFF, 0xFF)
-LIGHT_BG = RGBColor(0xF8, 0xF9, 0xFA)
-RED = RGBColor(0xE7, 0x4C, 0x3C)
-GRAY = RGBColor(0x66, 0x66, 0x66)
-DARK_BG = RGBColor(0x1B, 0x1B, 0x1B)
-LIGHT_GREEN_BG = RGBColor(0xF0, 0xFD, 0xF4)
+G = RGBColor(0x6D, 0xB3, 0x3F)  # Spring Green
+D = RGBColor(0x34, 0x30, 0x2D)  # Dark
+W = RGBColor(0xFF, 0xFF, 0xFF)
+L = RGBColor(0xF8, 0xF9, 0xFA)
+R = RGBColor(0xE7, 0x4C, 0x3C)
+GR = RGBColor(0x66, 0x66, 0x66)
+DB = RGBColor(0x1B, 0x1B, 0x1B)
+LG = RGBColor(0xF0, 0xFD, 0xF4)
+CODE_BG = RGBColor(0x27, 0x28, 0x22)
+CODE_FG = RGBColor(0xE6, 0xDB, 0x74)
 
 prs = Presentation()
 prs.slide_width = Inches(13.333)
 prs.slide_height = Inches(7.5)
 
-W = prs.slide_width
-H = prs.slide_height
+def bg(slide, color):
+    slide.background.fill.solid()
+    slide.background.fill.fore_color.rgb = color
 
-def add_bg(slide, color):
-    bg = slide.background
-    fill = bg.fill
-    fill.solid()
-    fill.fore_color.rgb = color
-
-def add_text_box(slide, left, top, width, height, text, font_size=18, bold=False,
-                 color=SPRING_DARK, alignment=PP_ALIGN.LEFT, font_name='Microsoft YaHei'):
-    txBox = slide.shapes.add_textbox(Inches(left), Inches(top), Inches(width), Inches(height))
-    tf = txBox.text_frame
-    tf.word_wrap = True
-    p = tf.paragraphs[0]
-    p.text = text
-    p.font.size = Pt(font_size)
-    p.font.bold = bold
-    p.font.color.rgb = color
-    p.font.name = font_name
-    p.alignment = alignment
+def tb(slide, l, t, w, h, text, fs=18, bold=False, color=D, align=PP_ALIGN.LEFT):
+    box = slide.shapes.add_textbox(Inches(l), Inches(t), Inches(w), Inches(h))
+    tf = box.text_frame; tf.word_wrap = True
+    p = tf.paragraphs[0]; p.text = text
+    p.font.size = Pt(fs); p.font.bold = bold
+    p.font.color.rgb = color; p.font.name = 'Microsoft YaHei'; p.alignment = align
     return tf
 
-def add_code_box(slide, left, top, width, height, code_text, font_size=11):
-    """Add a dark code block."""
-    shape = slide.shapes.add_shape(
-        MSO_SHAPE.ROUNDED_RECTANGLE, Inches(left), Inches(top), Inches(width), Inches(height))
-    shape.fill.solid()
-    shape.fill.fore_color.rgb = RGBColor(0x27, 0x28, 0x22)
-    shape.line.fill.background()
-    tf = shape.text_frame
-    tf.word_wrap = True
-    tf.margin_left = Inches(0.2)
-    tf.margin_right = Inches(0.2)
-    tf.margin_top = Inches(0.15)
-    tf.margin_bottom = Inches(0.15)
-    for i, line in enumerate(code_text.strip().split('\n')):
-        if i == 0:
-            p = tf.paragraphs[0]
-        else:
-            p = tf.add_paragraph()
-        p.text = line
-        p.font.size = Pt(font_size)
-        p.font.name = 'Courier New'
-        p.font.color.rgb = RGBColor(0xE6, 0xDB, 0x74)
-        p.space_after = Pt(2)
+def line(slide, l, t):
+    ln = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(l), Inches(t), Inches(1.2), Inches(.05))
+    ln.fill.solid(); ln.fill.fore_color.rgb = G; ln.line.fill.background()
+
+def code(slide, l, t, w, h, text, fs=10):
+    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(l), Inches(t), Inches(w), Inches(h))
+    shape.fill.solid(); shape.fill.fore_color.rgb = CODE_BG; shape.line.fill.background()
+    tf = shape.text_frame; tf.word_wrap = True
+    tf.margin_left = Inches(.15); tf.margin_right = Inches(.15)
+    tf.margin_top = Inches(.12); tf.margin_bottom = Inches(.12)
+    lines = text.strip().split('\n')
+    for i, ln_text in enumerate(lines):
+        p = tf.paragraphs[0] if i == 0 else tf.add_paragraph()
+        p.text = ln_text
+        p.font.size = Pt(fs); p.font.name = 'Courier New'; p.font.color.rgb = CODE_FG
+        p.space_after = Pt(1)
     return tf
 
-def add_table(slide, left, top, width, height, rows, col_widths=None):
-    """Add a styled table. rows is list of lists."""
-    n_rows = len(rows)
-    n_cols = len(rows[0])
-    table_shape = slide.shapes.add_table(n_rows, n_cols, Inches(left), Inches(top), Inches(width), Inches(height))
-    table = table_shape.table
+def table(slide, l, t, w, h, rows, col_widths=None):
+    nr, nc = len(rows), len(rows[0])
+    ts = slide.shapes.add_table(nr, nc, Inches(l), Inches(t), Inches(w), Inches(h))
+    tbl = ts.table
     if col_widths:
-        for i, w in enumerate(col_widths):
-            table.columns[i].width = Inches(w)
+        for i, cw in enumerate(col_widths): tbl.columns[i].width = Inches(cw)
     for r, row in enumerate(rows):
-        for c, cell_text in enumerate(row):
-            cell = table.cell(r, c)
-            cell.text = str(cell_text)
+        for c, val in enumerate(row):
+            cell = tbl.cell(r, c); cell.text = str(val)
             for p in cell.text_frame.paragraphs:
-                p.font.size = Pt(13)
-                p.font.name = 'Microsoft YaHei'
-                if r == 0:
-                    p.font.bold = True
-                    p.font.color.rgb = WHITE
-                else:
-                    p.font.color.rgb = SPRING_DARK
-            if r == 0:
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = SPRING_GREEN
-            else:
-                cell.fill.solid()
-                cell.fill.fore_color.rgb = WHITE if r % 2 == 0 else LIGHT_BG
-    return table
+                p.font.size = Pt(12); p.font.name = 'Microsoft YaHei'
+                p.font.bold = (r == 0); p.font.color.rgb = W if r == 0 else D
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = G if r == 0 else (W if r % 2 == 0 else L)
+    return tbl
 
-def add_chapter_slide(title, chap_num, subtitle=""):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])  # blank
-    add_bg(slide, DARK_BG)
-    # Large number
-    add_text_box(slide, 0.8, 1.2, 4, 2, chap_num, font_size=96, bold=True,
-                 color=RGBColor(0x6D, 0xB3, 0x3F), alignment=PP_ALIGN.LEFT)
-    # Title
-    add_text_box(slide, 0.8, 3.5, 10, 1.5, title, font_size=40, bold=True,
-                 color=WHITE, alignment=PP_ALIGN.LEFT)
-    if subtitle:
-        add_text_box(slide, 0.8, 4.8, 10, 0.8, subtitle, font_size=20,
-                     color=RGBColor(0xAA, 0xAA, 0xAA), alignment=PP_ALIGN.LEFT)
-    # Accent line
-    line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(3.2), Inches(1.5), Inches(0.06))
-    line.fill.solid(); line.fill.fore_color.rgb = SPRING_GREEN; line.line.fill.background()
-    return slide
+def ch(title, num, sub=""):
+    s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, DB)
+    tb(s, .8, 1.2, 4, 2, num, 96, True, G)
+    ln = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(.8), Inches(3.2), Inches(1.5), Inches(.06))
+    ln.fill.solid(); ln.fill.fore_color.rgb = G; ln.line.fill.background()
+    tb(s, .8, 3.5, 10, 1.5, title, 38, True, W)
+    if sub: tb(s, .8, 4.8, 10, .8, sub, 18, False, RGBColor(0xAA,0xAA,0xAA))
+    return s
 
-def add_compare_slide(title, bad_title, bad_items, good_title, good_items):
-    """Two-column comparison slide."""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    add_text_box(slide, 0.8, 0.4, 11, 0.8, title, font_size=30, bold=True, color=SPRING_DARK)
-    # Accent line
-    line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.15), Inches(1.2), Inches(0.05))
-    line.fill.solid(); line.fill.fore_color.rgb = SPRING_GREEN; line.line.fill.background()
-    # Bad column
-    bad = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.6), Inches(5.5), Inches(5.2))
-    bad.fill.solid(); bad.fill.fore_color.rgb = RGBColor(0xFF, 0xF5, 0xF5)
-    bad.line.color.rgb = RGBColor(0xFE, 0xCA, 0xCA); bad.line.width = Pt(2)
-    add_text_box(slide, 1.1, 1.8, 5, 0.5, bad_title, font_size=22, bold=True, color=RED)
-    for i, item in enumerate(bad_items):
-        add_text_box(slide, 1.1, 2.5 + i * 0.6, 5, 0.5, f"• {item}", font_size=14, color=SPRING_DARK)
-    # Good column
-    good = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7.0), Inches(1.6), Inches(5.5), Inches(5.2))
-    good.fill.solid(); good.fill.fore_color.rgb = LIGHT_GREEN_BG
-    good.line.color.rgb = RGBColor(0xBB, 0xF7, 0xD0); good.line.width = Pt(2)
-    add_text_box(slide, 7.3, 1.8, 5, 0.5, good_title, font_size=22, bold=True, color=SPRING_GREEN)
-    for i, item in enumerate(good_items):
-        add_text_box(slide, 7.3, 2.5 + i * 0.6, 5, 0.5, f"• {item}", font_size=14, color=SPRING_DARK)
-    return slide
+def box(slide, l, t, w, h, fill, border):
+    s = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(l), Inches(t), Inches(w), Inches(h))
+    s.fill.solid(); s.fill.fore_color.rgb = fill
+    s.line.color.rgb = border; s.line.width = Pt(2)
+    return s
 
-def add_card_slide(title, cards):
-    """cards = [(emoji, title, desc), ...]"""
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    add_text_box(slide, 0.8, 0.4, 11, 0.8, title, font_size=30, bold=True, color=SPRING_DARK)
-    line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.15), Inches(1.2), Inches(0.05))
-    line.fill.solid(); line.fill.fore_color.rgb = SPRING_GREEN; line.line.fill.background()
-    n = len(cards)
-    card_w = min(3.5, 11.5 / n - 0.3)
-    start_x = (12.5 - (card_w + 0.3) * n) / 2
-    for i, (emoji, ct, desc) in enumerate(cards):
-        x = start_x + i * (card_w + 0.3)
-        shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE,
-            Inches(x), Inches(2.0), Inches(card_w), Inches(4.0))
-        shape.fill.solid(); shape.fill.fore_color.rgb = WHITE
-        shape.line.color.rgb = RGBColor(0xE0, 0xE0, 0xE0); shape.line.width = Pt(1)
-        add_text_box(slide, x + 0.2, 2.3, card_w - 0.4, 1, emoji, font_size=36, alignment=PP_ALIGN.CENTER)
-        add_text_box(slide, x + 0.2, 3.3, card_w - 0.4, 0.6, ct, font_size=18, bold=True, alignment=PP_ALIGN.CENTER)
-        add_text_box(slide, x + 0.2, 3.9, card_w - 0.4, 1.5, desc, font_size=13, color=GRAY, alignment=PP_ALIGN.CENTER)
-    return slide
+# ===== TITLE =====
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, DB)
+tb(s, 1, 1.5, 11, 1.5, "Spring Boot + Spring Cloud", 48, True, W, PP_ALIGN.CENTER)
+tb(s, 1, 3.2, 11, .8, "产品团队技术培训", 28, False, RGBColor(0xCC,0xCC,0xCC), PP_ALIGN.CENTER)
+tb(s, 1, 4.3, 11, .6, "Spring Boot 3.x  ·  MyBatis Plus  ·  Spring Cloud", 16, False, G, PP_ALIGN.CENTER)
+tb(s, 1, 5.5, 11, .5, "~2h35min  ·  上半场实操 + 下半场理论", 14, False, RGBColor(0x88,0x88,0x88), PP_ALIGN.CENTER)
 
-# ========== TITLE SLIDE ==========
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, DARK_BG)
-add_text_box(slide, 1, 1.5, 11, 1.5, "Spring Boot + Spring Cloud", font_size=48, bold=True, color=WHITE, alignment=PP_ALIGN.CENTER)
-add_text_box(slide, 1, 3.2, 11, 0.8, "产品团队技术培训", font_size=28, color=RGBColor(0xCC,0xCC,0xCC), alignment=PP_ALIGN.CENTER)
-add_text_box(slide, 1, 4.3, 11, 0.6, "Spring Boot 3.x  ·  MyBatis Plus  ·  Spring Cloud", font_size=16, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
-add_text_box(slide, 1, 5.5, 11, 0.5, "~2h35min  ·  上半场实操 + 下半场理论", font_size=14, color=RGBColor(0x88,0x88,0x88), alignment=PP_ALIGN.CENTER)
+# ===== AGENDA =====
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "课程安排", 30, True); line(s, .8, 1.15)
+box(s, .8, 1.8, 5.5, 4.5, LG, RGBColor(0xBB,0xF7,0xD0))
+tb(s, 1.2, 2.1, 5, .5, "上半场：Spring Boot 实操", 22, True, G)
+tb(s, 1.2, 2.9, 5, 2, "Ch1 演进之路 → Ch2 核心机制+demo1\n→ Ch3 Web层+demo2 → Ch4 数据层+demo3", 14, False, D)
+tb(s, 1.2, 5.2, 5, .4, "~95 min", 16, False, GR)
+box(s, 7.0, 1.8, 5.5, 4.5, LG, RGBColor(0xBB,0xF7,0xD0))
+tb(s, 7.4, 2.1, 5, .5, "下半场：Spring Cloud 理论", 22, True, G)
+tb(s, 7.4, 2.9, 5, 2, "Ch5 为什么微服务 → Ch6 六大组件\n→ Ch7 产品视角 → Ch8 总结", 14, False, D)
+tb(s, 7.4, 5.2, 5, .4, "~48 min", 16, False, GR)
 
-# ========== AGENDA ==========
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "📋 今天讲什么", font_size=30, bold=True)
-line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.15), Inches(1.2), Inches(0.05))
-line.fill.solid(); line.fill.fore_color.rgb = SPRING_GREEN; line.line.fill.background()
-# Left card
-left = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.8), Inches(5.5), Inches(4.5))
-left.fill.solid(); left.fill.fore_color.rgb = LIGHT_GREEN_BG
-left.line.color.rgb = RGBColor(0xBB, 0xF7, 0xD0); left.line.width = Pt(2)
-add_text_box(slide, 1.2, 2.1, 5, 0.5, "🛠️ 上半场：Spring Boot 实操", font_size=22, bold=True, color=SPRING_GREEN)
-add_text_box(slide, 1.2, 2.9, 5, 2, "演进之路 → 核心机制 → 项目结构\n→ MyBatis Plus → 配置管理\n→ 统一响应 → AI 实战 → Demo", font_size=14, color=SPRING_DARK)
-add_text_box(slide, 1.2, 5.2, 5, 0.4, "~100 min", font_size=16, color=GRAY)
-# Right card
-right = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7.0), Inches(1.8), Inches(5.5), Inches(4.5))
-right.fill.solid(); right.fill.fore_color.rgb = LIGHT_GREEN_BG
-right.line.color.rgb = RGBColor(0xBB, 0xF7, 0xD0); right.line.width = Pt(2)
-add_text_box(slide, 7.4, 2.1, 5, 0.5, "☁️ 下半场：Spring Cloud 理论", font_size=22, bold=True, color=SPRING_GREEN)
-add_text_box(slide, 7.4, 2.9, 5, 2, "为什么微服务 → 六大组件\n→ 产品视角 → 总结", font_size=14, color=SPRING_DARK)
-add_text_box(slide, 7.4, 5.2, 5, 0.4, "~58 min", font_size=16, color=GRAY)
+# ===== CH1: 演进之路 =====
+ch("从 Spring MVC 到 Spring Boot", "01", "演进之路 · ~15min")
 
-# ========== CH1: 演进之路 ==========
-add_chapter_slide("从 Spring MVC 到 Spring Boot", "01", "演进之路 · ~15min")
-
-add_compare_slide("传统 Spring 开发有多痛？",
-    "😫 四大痛点", [
-        "配置地狱：web.xml + applicationContext.xml + spring-mvc.xml",
-        "依赖管理：6~8 个依赖，版本自己对齐",
-        "部署麻烦：装 Tomcat → 打 WAR → 丢 webapps → 重启",
-        "启动慢：搭环境半天起步",
-    ],
-    "💀 还没写代码…", [
-        "1. web.xml (至少30行XML)",
-        "2. applicationContext.xml (至少20行XML)",
-        "3. spring-mvc.xml (至少30行XML)",
-        "4. 配置数据源、事务管理器...",
-        "5. 安装 Tomcat → 6. 打WAR → 7. 部署",
-        "→ 一行业务代码还没写，100+ 行 XML 先写出来",
-    ])
-
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "💡 Spring Boot 的答案：约定大于配置", font_size=30, bold=True)
-line = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Inches(0.8), Inches(1.15), Inches(1.2), Inches(0.05))
-line.fill.solid(); line.fill.fore_color.rgb = SPRING_GREEN; line.line.fill.background()
-add_table(slide, 0.8, 1.8, 11.5, 3.5, [
-    ["你的动作", "Spring Boot 的约定（理解）", "省掉了什么（价值）"],
-    ["引入 spring-webmvc", "\"你要用 Spring MVC\" → 自动配 DispatcherServlet", "web.xml + spring-mvc.xml"],
-    ["继承 BaseMapper<Employee>", "\"你要 CRUD 这个表\" → 自动生成 SQL", "百行 XML 映射文件"],
-    ["引入 starter-web + 不配端口", "\"默认 8080，内嵌 Tomcat\"", "装 Tomcat、配端口、打 WAR"],
-], col_widths=[3, 4.5, 4])
-add_text_box(slide, 1, 6.0, 11, 0.8, '把"每次都要写的东西"变成"默认就有的东西"。想改可以改，不改就能用。',
-             font_size=18, bold=True, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
-
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🔧 Spring Initializr — 30秒生成项目", font_size=28, bold=True)
-add_text_box(slide, 0.8, 1.5, 11, 0.6, "🌐 网址：start.spring.io", font_size=22, bold=True, color=SPRING_GREEN)
-add_table(slide, 0.8, 2.4, 11.5, 3.2, [
-    ["步骤", "操作", "填什么"],
-    ["1", "打开网页", "start.spring.io"],
-    ["2", "构建工具", "Maven"],
-    ["3", "语言 & 版本", "Java 21 + Spring Boot 3.3.x"],
-    ["4", "项目坐标", "Group: com.example / Artifact: my-first-boot-app"],
-    ["5", "加依赖", "Spring Web + Lombok + H2 Database"],
-], col_widths=[1.5, 4, 6])
-add_text_box(slide, 0.8, 6.0, 11, 0.6, "点「Generate」→ 下载 zip → 解压 → 直接能跑（传统半小时 vs 现在30秒）",
-             font_size=18, bold=True, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
-
-# ========== CH2: 核心机制 ==========
-add_chapter_slide("Spring Boot 核心机制", "02", "自动配置 · Starter · 条件装配 · ~12min")
-
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🎯 一个注解 = 三件事", font_size=28, bold=True)
-add_code_box(slide, 0.8, 1.5, 11.5, 1.5, """@SpringBootApplication  // ← 三合一注解
-public class DemoApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(DemoApplication.class, args);
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "1.2 先看结果——demo1-initializer", 28, True); line(s, .8, 1.15)
+code(s, .8, 1.6, 11.5, 3.2,
+"""// Demo1Application.java：构造器注入 + 启动后自动执行
+@SpringBootApplication
+public class Demo1Application implements CommandLineRunner {
+    private final GreetingService greetingService;
+    public Demo1Application(GreetingService greetingService) { this.greetingService = greetingService; }
+    public static void main(String[] args) { SpringApplication.run(Demo1Application.class, args); }
+    public void run(String... args) { System.out.println(greetingService.greet("产品团队")); }
+}
+// ChineseGreetingService.java：@Service 标记，Spring 自动发现
+@Service public class ChineseGreetingService implements GreetingService {
+    public String greet(String name) { return "你好，" + name + "！"; }
+}
+// LoggingAspect.java：@Aspect，所有 service 方法自动加计时日志
+@Aspect @Component public class LoggingAspect {
+    @Around("execution(* com.example.demo1.service..*.*(..))")
+    public Object log(ProceedingJoinPoint jp) throws Throwable {
+        long s=System.currentTimeMillis(); Object r=jp.proceed();
+        System.out.println("[AOP] "+jp.getSignature().toShortString()+" 耗时:"+(System.currentTimeMillis()-s)+"ms");
+        return r;
     }
 }""")
-add_table(slide, 0.8, 3.5, 11.5, 2.5, [
-    ["注解", "作用", "学过？"],
-    ["@Configuration", "可以定义 Bean，标记配置类", "✅ 学过的"],
-    ["@ComponentScan", "扫描当前包及子包下所有组件", "✅ 学过的"],
-    ["@EnableAutoConfiguration", "自动配置——Spring Boot 的灵魂", "🆕 新东西！"],
-], col_widths=[4, 4.5, 3])
+tb(s, .8, 5.2, 11, 1.5, "mvn spring-boot:run → 0.4 秒启动 → IoC 注入 + AOP 日志全在工作。零行 XML。", 18, True, G)
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🏠 精装修 vs 毛坯房", font_size=28, bold=True)
-add_compare_slide("", "", [], "", [])
-# Override with custom content
-for sh in list(slide.shapes)[1:]:  # remove auto-added shapes
-    pass
-add_text_box(slide, 1.0, 1.2, 5, 0.5, "传统 Spring = 毛坯房", font_size=22, bold=True, color=RED)
-add_text_box(slide, 1.0, 1.9, 5, 3, "墙自己刷\n电线自己铺\n地板自己装\n\n好处：想怎么装怎么装\n坏处：累", font_size=16, color=SPRING_DARK)
-add_text_box(slide, 7.5, 1.2, 5, 0.5, "Spring Boot = 精装修公寓", font_size=22, bold=True, color=SPRING_GREEN)
-add_text_box(slide, 7.5, 1.9, 5, 3, "墙刷好了\n空调装了\n热水器接了\n\n拎包入住\n不满意可以改——你的配置优先级更高", font_size=16, color=SPRING_DARK)
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "1.3 对比——传统方式 vs Spring Boot", 28, True); line(s, .8, 1.15)
+box(s, .8, 1.8, 5.5, 3.5, RGBColor(0xFF,0xF5,0xF5), RGBColor(0xFE,0xCA,0xCA))
+tb(s, 1.1, 2.0, 5, .5, "传统 Spring", 22, True, R)
+code(s, 1.1, 2.6, 5, 1.5,
+"""<context:component-scan base-package="com.example.service"/>
+<context:annotation-config/>""", 11)
+tb(s, 1.1, 4.3, 5, .7, "每个项目都要写这两行。包名变化时跟着改。", 14, False, D)
+box(s, 7.0, 1.8, 5.5, 3.5, LG, RGBColor(0xBB,0xF7,0xD0))
+tb(s, 7.3, 2.0, 5, .5, "Spring Boot (demo1)", 22, True, G)
+tb(s, 7.3, 2.8, 5, 2, "0 行 XML。@SpringBootApplication 默认从启动类包开始扫描，@Autowired 自动生效。0.4 秒跑起来。", 16, False, D)
+tb(s, .8, 5.8, 11, 1, "web.xml、spring-mvc.xml 那 80+ 行是 Web 层配置——demo1 没有 Web 模块。第三章加了 Web Starter 之后再对比。", 15, False, GR)
 
-# ========== CH3: 项目结构 ==========
-add_chapter_slide("Spring Boot 项目结构", "03", "什么没了？什么没变？ · ~5min")
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "1.4 约定大于配置 & 1.5 Spring Boot 是什么", 28, True); line(s, .8, 1.15)
+tb(s, .8, 1.6, 11, 1.2, '配置 = 你告诉框架每一个细节。约定 = 框架预设默认行为，按规矩来就自动生效。\n举例：不写端口配置→8080 已在监听。想改 server.port=9090，不改就默认。', 17, False, D)
+table(s, .8, 3.2, 11.5, 2.5, [
+    ["痛点", "解法"],
+    ["手写 XML 配置", "自动配置——约定好了，不用写"],
+    ["6~8 个依赖版本对齐", "Starter 套餐——一个依赖一组功能"],
+    ["装 Tomcat 打 WAR 部署", "内嵌 Tomcat——java -jar 直接跑"],
+    ["搭环境半天", "Spring Initializr——30 秒生成项目"],
+], col_widths=[4, 7.5])
+tb(s, .8, 6.0, 11, .8, "Spring Boot = Spring + Spring MVC + 自动配置 + 内嵌服务器。它是 Spring 的自动挡。", 18, True, G)
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🔍 找茬——什么没了？", font_size=28, bold=True)
-# Bad
-bad = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.6), Inches(5.5), Inches(4.5))
-bad.fill.solid(); bad.fill.fore_color.rgb = RGBColor(0xFF, 0xF5, 0xF5)
-bad.line.color.rgb = RGBColor(0xFE, 0xCA, 0xCA); bad.line.width = Pt(2)
-add_text_box(slide, 1.1, 1.9, 5, 0.5, "❌ 传统 Spring MVC", font_size=22, bold=True, color=RED)
-add_text_box(slide, 1.1, 2.6, 5, 2.5, "webapp/WEB-INF/web.xml\napplicationContext.xml\nspring-mvc.xml\n\n3 个 XML 配置文件", font_size=16, color=SPRING_DARK)
-# Good
-good = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(7.0), Inches(1.6), Inches(5.5), Inches(4.5))
-good.fill.solid(); good.fill.fore_color.rgb = LIGHT_GREEN_BG
-good.line.color.rgb = RGBColor(0xBB, 0xF7, 0xD0); good.line.width = Pt(2)
-add_text_box(slide, 7.3, 1.9, 5, 0.5, "✅ Spring Boot", font_size=22, bold=True, color=SPRING_GREEN)
-add_text_box(slide, 7.3, 2.6, 5, 2.5, "DemoApplication.java\napplication.yml\n\n1 个启动类 + 1 个 YAML\n内嵌 Tomcat，java -jar 直接跑", font_size=16, color=SPRING_DARK)
-add_text_box(slide, 2, 6.5, 9, 0.5, "分层架构不变：controller/ → service/ → mapper/ → entity/", font_size=18, bold=True, alignment=PP_ALIGN.CENTER)
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "1.6 演进全景图", 28, True); line(s, .8, 1.15)
+tb(s, 1, 2.5, 11, 1.5, "Java Servlet → Spring Framework → Spring MVC → Spring Boot → Spring Cloud", 24, True, D, PP_ALIGN.CENTER)
+tb(s, 1, 4.0, 11, 1, "↑ 上节课                    ↑ 本节课上半场                    ↑ 本节课下半场", 18, False, G, PP_ALIGN.CENTER)
+tb(s, 1, 5.5, 11, .8, "Spring Initializr: start.spring.io — Maven + Java 21 + Spring Boot 3.3.x → Generate → 解压 → 直接跑", 16, False, GR, PP_ALIGN.CENTER)
 
-# ========== CH4: MyBatis Plus ==========
-add_chapter_slide("MyBatis Plus", "04", '数据访问层的"自动挡" · ~15min')
+# ===== CH2: 核心机制 + demo1 =====
+ch("核心机制 + demo1", "02", "IoC / AOP 层 · ~20min")
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🎁 继承即拥有 — 空接口 = 全套 CRUD", font_size=28, bold=True)
-add_code_box(slide, 0.8, 1.3, 11.5, 2.8, """// Entity: 一个类对应一张表
-@Data @TableName("employee")
-public class Employee {
-    @TableId(type = IdType.AUTO) private Long id;
-    private String name; private Integer age; private String email;
-}
-
-// Mapper: 继承 BaseMapper，自动获得 CRUD！
-@Mapper
-public interface EmployeeMapper extends BaseMapper<Employee> {
-    // 空接口！但拥有 insert/deleteById/updateById/selectById/
-    //            selectList/selectPage... 十几种方法
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "2.1 @SpringBootApplication 三合一", 28, True); line(s, .8, 1.15)
+code(s, .8, 1.6, 11.5, 1.2,
+"""@SpringBootApplication  // ← 三合一注解
+public class Demo1Application {
+    public static void main(String[] args) { SpringApplication.run(Demo1Application.class, args); }
 }""")
-add_text_box(slide, 0.8, 4.6, 11, 2, "一张新表 = 一个空接口继承 BaseMapper。完事。\n—— MyBatis Plus 的哲学跟 Spring Boot 一模一样：约定大于配置。",
-             font_size=18, bold=True, color=SPRING_GREEN)
+table(s, .8, 3.2, 11.5, 1.8, [
+    ["注解", "作用", "上节课"],
+    ["@Configuration", "标记配置类，可定义 Bean", "涉及"],
+    ["@ComponentScan", "扫描当前包及子包下组件", "涉及"],
+    ["@EnableAutoConfiguration", "自动配置——Spring Boot 的灵魂", "本节课新内容"],
+], col_widths=[3.5, 4.5, 3.5])
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🔗 LambdaQueryWrapper — 不写 SQL", font_size=28, bold=True)
-add_code_box(slide, 0.8, 1.3, 11.5, 2.5, """LambdaQueryWrapper<Employee> wrapper = new LambdaQueryWrapper<>();
-wrapper.eq(Employee::getName, "张三")    // WHERE name = '张三'
-       .gt(Employee::getAge, 25)         // AND age > 25
-       .orderByDesc(Employee::getId);    // ORDER BY id DESC
-employeeMapper.selectList(wrapper);
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "2.2 自动配置——两条约定", 28, True); line(s, .8, 1.15)
+tb(s, .8, 1.6, 11, 1.2, "约定一：默认扫描位置", 22, True, G)
+tb(s, .8, 2.8, 11, 1.5, "@ComponentScan 从启动类所在包开始向下扫描所有子包。Demo1Application 在 com.example.demo1，所以 service/、aspect/ 下的 @Service、@Aspect 自动被发现。类放到包外则扫不到，需显式配置。不需要在 XML 里写 <context:component-scan base-package=\"...\"/>。", 16, False, D)
+tb(s, .8, 4.3, 11, 1.2, "约定二：注解自动生效", 22, True, G)
+tb(s, .8, 5.5, 11, 1.5, "传统 Spring 需要 <context:annotation-config/> 开启注解处理。Spring Boot 自动开启——写 @Autowired 即生效，无需任何 XML 开关。两条约定合在一起：知道去哪扫、扫到怎么处理。开发者只需写注解。", 16, False, D)
 
-// 分页 —— 一行搞定
-Page<Employee> page = new Page<>(1, 10);
-employeeMapper.selectPage(page, wrapper);
-// 自动返回：records、total、current、pages  """)
-add_text_box(slide, 0.8, 4.5, 11, 1.5, "字段写错了？编译器直接报错——不是运行时炸。\n演进路径：JDBC 手写 → MyBatis 半自动 → MyBatis Plus 更自动",
-             font_size=16, color=SPRING_DARK)
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "2.2 精装修公寓 & 2.3 Demo1 回顾", 28, True); line(s, .8, 1.15)
+box(s, .8, 1.8, 5.5, 3.5, RGBColor(0xFF,0xF5,0xF5), RGBColor(0xFE,0xCA,0xCA))
+tb(s, 1.1, 2.0, 5, .5, "传统 Spring = 毛坯房", 20, True, R)
+tb(s, 1.1, 2.8, 5, 2, "墙自己刷、电线自己铺、地板自己装\n好处：想怎么装怎么装\n坏处：每个项目从头装一遍", 16, False, D)
+box(s, 7.0, 1.8, 5.5, 3.5, LG, RGBColor(0xBB,0xF7,0xD0))
+tb(s, 7.3, 2.0, 5, .5, "Spring Boot = 精装修公寓", 20, True, G)
+tb(s, 7.3, 2.8, 5, 2, "拎包入住。不满意可以改——\n你的配置优先级高于默认配置。\n条件装配：你需要+没配→我来。", 16, False, D)
+tb(s, .8, 5.8, 11, 1, "Demo1 回顾：启动类在 com.example.demo1，@Service 在子包下，自动扫描。构造器注入生效。mvn run → 0.4s，IoC+AOP 全在工作。没有 Web 能力——下一步加 starter-web。", 16, False, D)
 
-# ========== CH5: 配置管理 ==========
-add_chapter_slide("配置管理", "05", "从 XML 到 YAML · ~5min")
+# ===== CH3: Web 层 + demo2 =====
+ch("Web 层实战 + demo2-web", "03", "承上启下核心章 · ~30min")
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "📉 21 行 XML → 5 行 YAML", font_size=28, bold=True)
-add_code_box(slide, 0.8, 1.5, 5, 3.5, """<!-- 传统 XML: 21行 -->
-<bean id="dataSource"
-      class="...BasicDataSource">
-  <property name="driverClassName"
-            value="com.mysql.cj..."/>
-  <property name="url"
-            value="jdbc:mysql://..."/>
-  <property name="username"
-            value="root"/>
-  <property name="password"
-            value="123456"/>
-</bean>""", font_size=10)
-add_code_box(slide, 6.5, 1.5, 5.8, 3.5, """# Spring Boot YAML: 5行
-spring:
-  datasource:
-    url: jdbc:mysql://localhost/demo
-    username: root
-    password: ${DB_PASSWORD}
-    driver-class-name: com.mysql.cj.jdbc.Driver
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "3.1 demo2 多了一个依赖 & 3.2 传统 Spring MVC 的 3 个 XML", 26, True); line(s, .8, 1.15)
+code(s, .8, 1.5, 5.5, 1,
+"""<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-web</artifactId>
+</dependency>""")
+tb(s, .8, 2.7, 5.5, .5, "这一行 = Tomcat + Spring MVC + JSON", 14, True, G)
+tb(s, 7.0, 1.5, 5.5, 1.5, "传统方式需要 3 个 XML 文件 80+ 行配置\n+ 装 Tomcat + 打 WAR + 部署", 16, False, R)
+code(s, .8, 3.5, 11.5, 3.5,
+"""// web.xml（~30行）：配置 DispatcherServlet
+<web-app><servlet><servlet-name>dispatcher</servlet-name>
+<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+<init-param><param-name>contextConfigLocation</param-name>
+<param-value>/WEB-INF/spring-mvc.xml</param-value></init-param></servlet>
+<servlet-mapping><servlet-name>dispatcher</servlet-name><url-pattern>/</url-pattern></servlet-mapping></web-app>
+// applicationContext.xml（~20行）：数据源、事务、扫描
+<beans><context:component-scan base-package="com.example"/>
+<bean id="dataSource" class="...BasicDataSource"><property name="driverClassName" value="com.mysql.cj.jdbc.Driver"/>
+<property name="url" value="jdbc:mysql://localhost:3306/demo"/></bean>
+<bean id="txManager" class="...DataSourceTransactionManager"><property name="dataSource" ref="dataSource"/></bean></beans>
+// spring-mvc.xml（~30行）：视图解析器、注解驱动
+<beans><mvc:annotation-driven/><context:component-scan base-package="com.example.controller"/>
+<bean class="...InternalResourceViewResolver"><property name="prefix" value="/WEB-INF/views/"/>
+<property name="suffix" value=".jsp"/></bean></beans>""", 9)
+tb(s, 7.2, 3.8, 5.5, 1, "而 demo2：1 个 starter-web 依赖\n+ 1 个 @RestController。零行 XML。", 16, True, G)
 
-# 多环境: 一行切换
-# spring.profiles.active=prod""", font_size=10)
-add_text_box(slide, 0.8, 5.5, 11, 1, "没有尖括号 · 没有 property · 没有 bean 定义\n密码用 ${DB_PASSWORD} 环境变量，永远不要硬编码",
-             font_size=16, color=SPRING_DARK)
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "3.3 承上启下对照表", 28, True); line(s, .8, 1.15)
+table(s, .8, 1.8, 11.5, 3.5, [
+    ["上节课（传统 Spring MVC）", "Spring Boot", "还需要吗"],
+    ["web.xml 配置 DispatcherServlet", "starter-web 自动配置", "不需要"],
+    ["spring-mvc.xml 配置视图解析器、注解驱动", "WebMvcAutoConfiguration 自动配置", "不需要"],
+    ["applicationContext.xml 配置组件扫描", "@SpringBootApplication 自带扫描", "不需要"],
+    ["写 @Controller + @RequestMapping", "写 @RestController + @GetMapping", "写法一样"],
+    ["装 Tomcat → 打 WAR → 部署", "内嵌 Tomcat，java -jar 直接跑", "不需要"],
+], col_widths=[4.5, 4.5, 2.5])
+tb(s, .8, 5.8, 11, 1, "上节课教的 @Controller 怎么用——照用。web.xml 怎么配——不用了。Starter 已替代三个 XML 文件。", 18, True, G)
 
-# ========== CH6: 统一响应与异常 ==========
-add_chapter_slide("统一响应与异常处理", "06", "前端同事的救命稻草 · ~10min")
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "3.4 REST API & 3.5 统一响应 & 3.6 异常处理", 26, True); line(s, .8, 1.15)
+code(s, .8, 1.6, 6, 2.5,
+"""@RestController  // = @Controller + @ResponseBody
+public class GreetingController {
+    private final GreetingService greetingService;
+    @GetMapping("/api/greeting")
+    public Result<String> greet(@RequestParam String name) {
+        return Result.success(greetingService.greet(name));
+    }
+}""", 10)
+code(s, 7.2, 1.6, 5.3, 2.5,
+"""// 统一响应格式
+{"code":200,"message":"操作成功","data":{...}}
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "✅ 统一用 Result<T> 包装", font_size=28, bold=True)
-add_code_box(slide, 0.8, 1.3, 11.5, 1.2, """{"code": 200, "message": "操作成功", "data": { "id": 1, "name": "张三" }}""", font_size=16)
-add_text_box(slide, 0.8, 2.8, 11, 0.5, "三个字段：code（状态码）+ message（提示）+ data（真正的数据，泛型）", font_size=16)
-add_code_box(slide, 0.8, 3.5, 5.5, 2.5, """// Controller 统一返回 Result<T>
-@GetMapping("/{id}")
-public Result<Employee> getById(@PathVariable Long id) {
-    return Result.success(employeeService.getById(id));
-}
-
-@DeleteMapping("/{id}")
-public Result<Void> delete(@PathVariable Long id) {
-    employeeService.delete(id);
-    return Result.success();
-}""", font_size=10)
-add_code_box(slide, 7.0, 3.5, 5.3, 2.5, """// 全局异常处理 — 一个类搞定
+// 全局异常处理
 @RestControllerAdvice
 public class GlobalExceptionHandler {
     @ExceptionHandler(BusinessException.class)
     public Result<?> handle(BusinessException e) {
         return Result.error(e.getCode(), e.getMessage());
     }
-}
-// Controller 里不需要写任何 try-catch""", font_size=10)
-add_text_box(slide, 0.8, 6.3, 11, 0.6, "审 AI 代码三件事：返回 Result<T>？抛 BusinessException？有 GlobalExceptionHandler？",
-             font_size=16, bold=True, color=SPRING_GREEN)
+}""", 9)
+tb(s, .8, 4.5, 11, 2.5, "@RestController = @Controller + 自动 JSON 序列化。@GetMapping = @RequestMapping 的 GET 限定版。\n统一响应：所有接口返回 {code, message, data}，前端只需判断 code===200。\n统一异常：@RestControllerAdvice 一个注解全局处理异常，Controller 里不需要 try-catch。\n运行：mvn run → Tomcat started on port 8080 → curl 返回 JSON。", 15, False, D)
 
-# ========== CH7: AI 实战 ==========
-add_chapter_slide("AI 辅助开发实战指南", "⭐ 07", "Prompt 模板 · 15条审查清单 · ~20min")
+# ===== CH4: 数据层 + demo3 =====
+ch("数据层实战 + demo3-data", "04", "~30min")
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "📝 给 AI 写 Prompt 的模板", font_size=28, bold=True)
-add_code_box(slide, 0.8, 1.3, 11.5, 3.8, """使用 Spring Boot 3.x + MyBatis Plus 开发【功能描述】。
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "4.2 MyBatis Plus —— 数据层的约定大于配置", 28, True); line(s, .8, 1.15)
+code(s, .8, 1.6, 5.8, 3,
+"""// Entity —— 一个类对应一张表
+@Data @TableName("employee")
+public class Employee {
+    @TableId(type = IdType.AUTO) private Long id;
+    private String name;
+    private BigDecimal salary;       // 金额用 BigDecimal
+    private LocalDateTime createTime;// 日期用 LocalDateTime
+}""", 10)
+code(s, 7.0, 1.6, 5.5, 3,
+"""// Mapper —— 空接口 = 全套 CRUD
+@Mapper
+public interface EmployeeMapper
+        extends BaseMapper<Employee> {
+    // 空接口！继承 BaseMapper 自动拥有：
+    // insert、deleteById、updateById
+    // selectById、selectList
+    // selectPage、selectCount ...
+}""", 10)
+tb(s, .8, 5.0, 11, 1.5, "传统 MyBatis：每张表约 10 条 SQL，十张表 100 条。MyBatis Plus：继承一个接口，完事。这是数据层的约定大于配置。", 17, True, G)
 
-要求：
-- 分层架构：Controller / Service / ServiceImpl / Mapper / Entity
-- 统一返回 Result<T>
-- 增删改加 @Transactional
-- 用 LambdaQueryWrapper，不要字符串拼 SQL
-- 日期用 LocalDateTime，金额用 BigDecimal
-- 异常用 BusinessException，不要空 catch
-- 包名用 jakarta，不要 javax
-- 不要生成 XML 配置，全用注解和 YAML""")
-add_text_box(slide, 0.8, 5.6, 11, 1.2, "每一个要求前面几章都讲过了。你每多说一句要求，就少踩一个坑。\n关键：AI 不会理解你项目的上下文——你说了才有。",
-             font_size=16, color=SPRING_DARK)
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "4.3 条件查询 & 4.4 配置管理", 28, True); line(s, .8, 1.15)
+code(s, .8, 1.6, 7, 2.5,
+"""LambdaQueryWrapper<Employee> wrapper = new LambdaQueryWrapper<>();
+wrapper.like(name != null, Employee::getName, name)
+       .eq(deptId != null, Employee::getDepartmentId, deptId)
+       .orderByDesc(Employee::getId);
+Page<Employee> page = new Page<>(1, 10);
+employeeMapper.selectPage(page, wrapper);
+// 返回: records、total、current、pages""", 10)
+code(s, 8.2, 1.6, 4.3, 2.5,
+"""# application.yml: 5 行
+spring:
+  datasource:
+    url: jdbc:h2:mem:demo3
+    username: sa
+  sql.init.mode: always
+# 换 MySQL 改 3 行，代码不动""", 10)
+tb(s, .8, 4.5, 11, 2.5, "LambdaQueryWrapper 链式调用，字段名用方法引用——写错编译器直接报错。分页 count/limit 自动完成。\n5 行 YAML 替代传统 21 行 XML。换 MySQL 改 3 行配置，代码不变。多环境：application-dev.yml / prod.yml，一行切换。", 15, False, D)
 
-# 15条审查清单 - 3 slides
-for batch, items in enumerate([
-    ["① 文件在正确包下？", "② Controller 有 @RestController？", "③ Service 接口+实现分离？",
-     "④ Mapper 继承 BaseMapper？", "⑤ @TableName 对应表名？"],
-    ["⑥ 返回值是 Result<T>？", "⑦ 增删改有 @Transactional？", "⑧ 密码硬编码了？",
-     "⑨ 用了 LambdaQueryWrapper？", "⑩ catch 块是空的？"],
-    ["⑪ 分页用了 Page<T>？", "⑫ 日期用 LocalDateTime？", "⑬ 参数有 @Valid？",
-     "⑭ 日志用 @Slf4j？", "⑮ import 有 javax？(应为 jakarta)"],
-]):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    add_text_box(slide, 0.8, 0.4, 11, 0.8, f"🔍 15 条审查清单（{batch+1}/3）", font_size=28, bold=True)
-    for i, item in enumerate(items):
-        y = 1.8 + i * 1.0
-        shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(1.5), Inches(y), Inches(10), Inches(0.7))
-        shape.fill.solid(); shape.fill.fore_color.rgb = LIGHT_BG
-        shape.line.color.rgb = SPRING_GREEN; shape.line.width = Pt(1)
-        add_text_box(slide, 1.8, y + 0.1, 9.5, 0.5, item, font_size=18, color=SPRING_DARK)
-    if batch == 2:
-        add_text_box(slide, 1.5, 6.8, 10, 0.5, "这 15 条，不需要会写代码就能查 —— AI 写代码，你质检",
-                     font_size=18, bold=True, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "4.6 运行验证 & 4.7 三阶段小结", 28, True); line(s, .8, 1.15)
+code(s, .8, 1.6, 6, 3.5,
+"""cd demo3-data && mvn spring-boot:run  # < 1秒
 
-# AI 3 大错误
-add_card_slide("🐛 AI 最常犯的 3 个错误", [
-    ("🔄", "循环里查数据库", "for 循环里 selectById\n→ 应该 selectBatchIds"),
-    ("💥", "忘了 @Transactional", "转账扣钱成功加钱失败\n→ 钱凭空消失"),
-    ("🕳️", "空 catch", "catch(Exception e){}\n→ 定时炸弹"),
-])
+curl localhost:8080/api/employees                # 查全部
+curl 'localhost:8080/api/employees?current=1&size=5' # 分页
+curl 'localhost:8080/api/employees?name=张'      # 模糊搜索
+curl -X POST localhost:8080/api/employees \\
+  -H 'Content-Type: application/json' \\
+  -d '{"name":"新员工","age":26,"deptId":1,"salary":15000}'
+curl localhost:8080/api/employees/999
+# -> {"code":400,"message":"员工不存在: id=999"}""", 10)
+table(s, 7.0, 1.6, 5.5, 2.5, [
+    ["", "demo1", "demo2", "demo3"],
+    ["新增依赖", "核心 starter", "+ starter-web", "+ mybatis-plus + h2"],
+    ["新增文件", "4 个", "+3 个", "+7 个"],
+    ["能力", "IoC+AOP", "+ REST API", "+ 完整 CRUD"],
+], col_widths=[1.2, 1.5, 1.5, 1.5])
+tb(s, .8, 5.5, 11, 1.5, "每个 Starter 添加一种能力。三个依赖、十几个文件，从控制台输出到完整增删改查。核心不是魔法——是约定。", 17, True, G)
 
-# ========== CH8: DEMO ==========
-add_chapter_slide("Demo 现场演示", "08", "员工管理系统 · ~15min")
+# ===== CH5: 为什么微服务 =====
+ch("从单体到微服务", "05", "为什么需要 Spring Cloud · ~12min")
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🚀 启动 & 测试", font_size=28, bold=True)
-add_code_box(slide, 0.8, 1.3, 5.5, 2.8, """# 启动项目
-cd demo
-mvn spring-boot:run
-# Started DemoApplication in 0.958s
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "5.1 单体困境 & 5.2 微服务思路", 28, True); line(s, .8, 1.15)
+box(s, .8, 1.8, 5.5, 4, RGBColor(0xFF,0xF5,0xF5), RGBColor(0xFE,0xCA,0xCA))
+tb(s, 1.1, 2.0, 5, .5, "单体架构的问题", 20, True, R)
+tb(s, 1.1, 2.8, 5, 2.5, "• 200 人改一个工程→合并冲突\n• 订单扩容→整个系统部署 N 份\n• 改一行代码→全站重新部署\n• 一个模块挂了→全站崩溃", 16, False, D)
+box(s, 7.0, 1.8, 5.5, 4, LG, RGBColor(0xBB,0xF7,0xD0))
+tb(s, 7.3, 2.0, 5, .5, "微服务的答案", 20, True, G)
+tb(s, 7.3, 2.8, 5, 2.5, "拆分为几十个小工程。每个独立开发、独立部署、独立扩容。\n类比：单体 = 所有人一个大开间\n微服务 = 按部门分楼层，各管各的", 16, False, D)
+tb(s, .8, 6.3, 11, .6, "但拆分产生新问题——Spring Cloud 来解决。Spring Boot 让一个服务跑起来，Spring Cloud 让一组服务协作。", 16, True, G)
 
-# H2 控制台
-# http://localhost:8080/h2-console
-# JDBC URL: jdbc:h2:mem:demo""", font_size=10)
-add_code_box(slide, 7.0, 1.3, 5.3, 2.8, """# 查所有部门
-curl http://localhost:8080/api/departments
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "5.3 拆分后的四个新问题", 28, True); line(s, .8, 1.15)
+qs = [("① 服务发现", "订单服务要调用户服务——怎么知道它在哪台机器？写死 IP 则扩容就炸。"),
+      ("② 统一入口", "前端要调多个服务——难道记住所有地址？每个服务各自鉴权？"),
+      ("③ 级联故障", "用户服务宕机→订单不停重试→订单也挂→全站崩溃。"),
+      ("④ 链路排查", "一个请求跨 5 个服务——哪一步慢了？日志分散，拼不出全链路。")]
+for i, (title, desc) in enumerate(qs):
+    y = 1.6 + i * 1.3
+    tb(s, 1.2, y, 10, .5, title, 20, True, G)
+    tb(s, 1.2, y + .5, 10, .5, desc, 15, False, D)
 
-# 分页查员工
-curl "localhost:8080/api/employees?current=1&size=5"
+# ===== CH6: 六大组件 =====
+ch("Spring Cloud 六大组件", "06", "~28min · 贯穿比喻：外卖平台")
 
-# 新增员工
-curl -X POST http://localhost:8080/api/employees \\
-  -H "Content-Type: application/json" \\
-  -d '{"name":"新员工","age":26,"salary":15000}'""", font_size=10)
-add_text_box(slide, 0.8, 4.6, 11, 2, "不到 1 秒启动。完整 Web 应用 — 数据库 + HTTP + JSON 全在内存里。\nH2 内存数据库，应用一停数据就没了——非常适合演示。",
-             font_size=16, color=SPRING_DARK)
-
-# ========== CH9: 为什么微服务 ==========
-add_chapter_slide("从单体到微服务", "09", "为什么需要 Spring Cloud · ~12min")
-
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🏢 一个电商公司的故事", font_size=28, bold=True)
-add_text_box(slide, 0.8, 1.5, 11, 0.5, "创业第一天：一个 shop.jar — 订单、用户、商品全在里面。真爽。这就是单体架构。", font_size=18)
-add_text_box(slide, 0.8, 2.3, 11, 0.5, "一年后 200 人：", font_size=22, bold=True, color=RED)
-items_text = [
-    "😤 \"昨天写的代码被谁覆盖了？\" 合并冲突 50 个文件",
-    "😤 \"订单扩容 → 整个系统部署 10 份。\" 4G×10=40G 内存，实际上只有订单需要扩容",
-    "😤 \"改一行代码 → 全站重新部署。\" 换灯泡拉整栋楼电闸",
-    "😤 \"用户模块挂了 → 全站崩溃。\" 一个房间短路，整栋楼停电",
+comps = [
+    ("📒", "Nacos 注册中心", "配送调度中心",
+     "用户下单→订单服务通知配送服务找骑手。配送服务跑在 3 台机器上，订单服务怎么知道该找哪台？",
+     "配送服务启动时向 Nacos 登记地址。订单服务去 Nacos 查询可用实例。宕机自动剔除，新增自动加入。",
+     "骑手上线打卡→平台知道谁在线。下单→自动分配空闲骑手。"),
+    ("🏢", "Gateway 网关", "外卖 App 统一后台",
+     "App 首页调商家服务、购物车调订单服务、结算调支付服务。让 App 记多个地址？每个服务各自鉴权？",
+     "App 只与 Gateway 通信。Gateway 按路径转发到对应服务。鉴权统一完成，没 token 直接拦截。",
+     "你不会直接连商家数据库和支付系统——只跟 App 后台交互。Gateway = 统一后台。"),
+    ("☁️", "Nacos Config 配置中心", "商家后台改价",
+     "配送费规则调整。订单服务和配送服务都在用。需要改两个配置、重启两个服务。漏改一个线上不一致。",
+     "规则统一放配置中心。运营改一次，所有服务自动推送，不重启生效。",
+     "商家后台改菜价→App 立刻显示新价格，用户无需更新 App。"),
+    ("📞", "Feign 服务调用", "一键支付",
+     "提交订单后依次调用户服务、商家服务、支付服务。每次手写 HTTP 调用十几行，重复数十遍。",
+     "声明接口 + @FeignClient 注解 = 自动发 HTTP。像调本地方法一样调远程服务。",
+     "App 点微信支付→自动调起微信。不用自己打开微信输金额。"),
+    ("⚡", "Sentinel 熔断降级", "故障自动兜底",
+     "支付服务宕机。订单不停重试→1000 请求阻塞→订单也挂→商家也挂→级联故障全站崩溃。",
+     "监控调用成功率。连续失败→熔断（切断）+降级（货到付款）。恢复后自动切回在线支付。",
+     "一家店停电关门→平台暂时下架，推荐替代店铺。用户不会点进去才发现点不了。"),
+    ("📦", "Sleuth/Zipkin 链路追踪", "外卖物流追踪",
+     "用户投诉下单等了 10 秒。请求跨 5 个服务——哪个环节耗时过长？日志分散，拼不出全链路。",
+     "每个请求分配全局唯一 TraceID（快递单号），在服务间传递。Zipkin 拼接完整调用树，每步耗时可见。",
+     "快递物流：到达分拨中心 10:00，离开 18:00——卡了 8 小时。破案。"),
 ]
-for i, t in enumerate(items_text):
-    add_text_box(slide, 1.2, 3.0 + i * 0.7, 10, 0.6, t, font_size=16, color=SPRING_DARK)
 
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "⚠️ 拆完之后的新问题", font_size=28, bold=True)
-add_text_box(slide, 0.8, 1.9, 11, 0.6, "微服务的答案：把一个超级工程拆成几十个小工程，每个独立开发、独立部署、独立扩容。", font_size=18, bold=True)
-items_q = [
-    "❓ 订单服务要调用户服务 —— 怎么找到它在哪台机器？",
-    "❓ 前端要调 30 个服务 —— 难道记住 30 个地址？",
-    "❓ 用户服务挂了 —— 怎么不让它把订单服务也拖死？",
-    "❓ 一个请求跨 5 个服务 —— 慢了怎么排查？",
+for emoji, name, metaphor, problem, solution, analogy in comps:
+    s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+    box(s, .8, .8, 5.5, 5.5, LG, RGBColor(0xBB,0xF7,0xD0))
+    tb(s, 1.2, 1.2, 5, 1, emoji, 42, False, D, PP_ALIGN.CENTER)
+    tb(s, 1.2, 2.4, 5, .6, name, 22, True, G, PP_ALIGN.CENTER)
+    tb(s, 1.2, 3.1, 5, .5, f"「{metaphor}」", 18, False, D, PP_ALIGN.CENTER)
+    tb(s, 1.2, 3.9, 5, 2.2, analogy, 14, False, GR, PP_ALIGN.CENTER)
+    tb(s, 7.0, 1.2, 5.5, .5, "问题", 20, True, R)
+    tb(s, 7.0, 1.9, 5.5, 2, problem, 15, False, D)
+    tb(s, 7.0, 4.2, 5.5, .5, "解法", 20, True, G)
+    tb(s, 7.0, 4.9, 5.5, 2, solution, 15, False, D)
+
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "6.7 六大组件速查", 28, True); line(s, .8, 1.15)
+summary = [("外卖场景", "组件", "作用"),
+    ("骑手上线打卡，平台自动分配", "Nacos", "配送调度中心"),
+    ("App 统一后台，不管后面几个服务", "Gateway", "外卖 App 后台"),
+    ("商家改配送费，App 立刻生效", "Nacos Config", "商家后台改价"),
+    ("一键支付，不用自己打开微信", "Feign", "一键支付"),
+    ("支付宕机，自动切换货到付款", "Sentinel", "故障自动兜底"),
+    ("下单慢了，看哪个环节卡顿", "Sleuth/Zipkin", "外卖物流追踪")]
+table(s, .8, 1.8, 11.5, 4.8, summary, col_widths=[4.5, 3, 4])
+
+# ===== CH7: 产品视角 =====
+ch("产品视角", "07", "微服务不是免费的午餐 · ~8min")
+
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "7.1 代价 & 7.2 拆分前三问", 28, True); line(s, .8, 1.15)
+table(s, .8, 1.6, 11.5, 2, [
+    ["收益", "成本"],
+    ["独立部署", "运维复杂度 × N。日志、监控、部署流水线从 1 变 20"],
+    ["独立扩容", "分布式事务复杂度增加。原来一个事务→需协调多个服务"],
+    ["团队自治", "网络调用引入延迟。本地调用 1ms→HTTP 调用 10ms 起步"],
+], col_widths=[3, 8.5])
+qs2 = [("① 有独立的业务边界吗？", "不是功能多就该拆。订单和订单详情属同一边界，拆分增加耦合。"),
+       ("② 需要独立扩容吗？", "双十一仅订单要加机器——才值得拆。没有独立扩容需求的模块，拆分没核心收益。"),
+       ("③ 有独立团队维护吗？", "一个团队管 3 个微服务 = 分布式单体，比单体更复杂却没得到好处。")]
+for i, (q, detail) in enumerate(qs2):
+    y = 3.8 + i * 1.2
+    tb(s, 1.2, y, 10, .5, q, 20, True, G)
+    tb(s, 1.2, y + .5, 10, .5, detail, 15, False, GR)
+tb(s, .8, 7.0, 11, .4, "每拆分一个服务，运维成本就增加一份。拆分之前，先回答这三个问题。", 16, True, G, PP_ALIGN.CENTER)
+
+# ===== CH8: 总结 =====
+ch("课程总结 + Q&A", "08", "~10min")
+
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "今天的内容 & 三个关键结论", 28, True); line(s, .8, 1.15)
+table(s, .8, 1.6, 11.5, 1.8, [
+    ["模块", "核心"],
+    ["Spring Boot", "自动挡。约定大于配置。上节课学的全部有效，只是不需要 XML"],
+    ["三阶段实战", "demo1(IoC/AOP) → demo2(Web+承上启下) → demo3(数据+CRUD)"],
+    ["Spring Cloud", "六大组件——六个外卖平台场景"],
+], col_widths=[3, 8.5])
+cards_data = [
+    ("🚗", "Spring Boot 是自动挡", "@Controller 照用，web.xml 不用了\n一个注解替代三个 XML"),
+    ("🔌", "Starter 加一种能力", "加依赖即获得能力，约定已做好配置\ndemo1→demo2→demo3"),
+    ("🏗️", "Cloud 六道保险", "配送调度·统一后台·配置改价\n一键支付·故障兜底·物流追踪"),
 ]
-for i, t in enumerate(items_q):
-    add_text_box(slide, 1.2, 3.0 + i * 0.8, 10, 0.6, t, font_size=18, color=SPRING_DARK)
-add_text_box(slide, 0.8, 6.3, 11, 0.6, "Spring Boot 让一个服务跑起来 → Spring Cloud 让一堆服务能协作",
-             font_size=22, bold=True, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
+for i, (icon, title, desc) in enumerate(cards_data):
+    x = .8 + i * 4.1
+    box(s, x, 3.8, 3.8, 2.8, W, RGBColor(0xE0,0xE0,0xE0))
+    tb(s, x+.3, 4.0, 3.2, .8, icon, 32, False, D, PP_ALIGN.CENTER)
+    tb(s, x+.3, 4.8, 3.2, .6, title, 16, True, D, PP_ALIGN.CENTER)
+    tb(s, x+.3, 5.4, 3.2, 1, desc, 13, False, GR, PP_ALIGN.CENTER)
 
-# ========== CH10: 六大组件 ==========
-add_chapter_slide("Spring Cloud 六大组件", "10", "拆完之后的六道保险 · ~28min")
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, W)
+tb(s, .8, .4, 11, .8, "课后资料", 28, True, D, PP_ALIGN.CENTER); line(s, 6, 1.15)
+tb(s, 2, 2.0, 9, 4, "Demo 源码：demo1-initializer/  demo2-web/  demo3-data/\n启动命令：cd demoX && mvn spring-boot:run\n大纲与逐字稿：docs/springboot-teaching-outline.md\nSpring Initializr：https://start.spring.io", 20, False, D, PP_ALIGN.CENTER)
 
-components = [
-    ("📒", "Nacos 注册中心", "公司通讯录", "每个服务启动去登记，调用方去查询。\n你换手机号—更新通讯录就行，不用群发500人。"),
-    ("🏢", "Gateway 网关", "写字楼前台", "前端只调 Gateway 一个入口。\n统一鉴权：没 token 的门都进不来。"),
-    ("☁️", "Nacos Config 配置中心", "iCloud 同步", "一处修改，全部推送，不重启生效。\n换新手机→iCloud→全部自动同步。"),
-    ("📞", "Feign 服务调用", "快捷拨号", "写接口+注解=自动发 HTTP。\n设一个\"老婆\"快捷拨号，说名字就拨。"),
-    ("⚡", "Sentinel 熔断降级", "保险丝", "下游挂了→熔断切断+降级兜底。\n电饭煲短路→保险丝断→只断厨房，客厅还亮。"),
-    ("📦", "Sleuth/Zipkin 链路追踪", "快递单号", "每个请求一个 TraceID 串联全链路。\n快递慢了？看物流轨迹—卡分拨中心5h→破案。"),
-]
-for i, (emoji, name, metaphor, desc) in enumerate(components):
-    slide = prs.slides.add_slide(prs.slide_layouts[6])
-    add_bg(slide, WHITE)
-    # Left: emoji + name
-    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(0.8), Inches(1.2), Inches(5.5), Inches(5.0))
-    shape.fill.solid(); shape.fill.fore_color.rgb = LIGHT_GREEN_BG
-    shape.line.color.rgb = RGBColor(0xBB, 0xF7, 0xD0); shape.line.width = Pt(2)
-    add_text_box(slide, 1.2, 1.8, 5, 1, emoji, font_size=48, alignment=PP_ALIGN.CENTER)
-    add_text_box(slide, 1.2, 3.0, 5, 0.6, name, font_size=24, bold=True, alignment=PP_ALIGN.CENTER)
-    add_text_box(slide, 1.2, 3.7, 5, 0.5, f'「{metaphor}」', font_size=20, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
-    add_text_box(slide, 1.2, 4.5, 5, 1, desc, font_size=13, color=GRAY, alignment=PP_ALIGN.CENTER)
-    # Right: problem/solution
-    add_text_box(slide, 7.0, 1.5, 5.5, 0.5, "❓ 问题", font_size=20, bold=True, color=RED)
-    problem = {
-        "📒": "订单服务怎么知道用户服务在哪台机器？",
-        "🏢": "前端记30个地址？每个服务都做鉴权？",
-        "☁️": "数据库地址变了→改10份配置重启10个服务？",
-        "📞": "手写HTTP：拼URL、发请求、解析响应？",
-        "⚡": "用户服务挂了→订单不停重试→订单也挂→全站崩溃？",
-        "📦": "请求跨5个服务，慢了——哪一步的问题？",
-    }
-    solution = {
-        "📒": "Nacos 登记+查询。自动感知服务上下线。",
-        "🏢": "单一入口+统一鉴权。前端只记一个地址。",
-        "☁️": "配置中心统一管理。一处改，全部自动生效。",
-        "📞": "声明式调用。像调本地方法一样调远程。",
-        "⚡": "熔断（切断）+降级（兜底）。自动恢复。",
-        "📦": "全局 TraceID。调用链每个节点耗时一目了然。",
-    }
-    add_text_box(slide, 7.2, 2.2, 5.2, 1.2, problem.get(emoji, ""), font_size=14, color=SPRING_DARK)
-    add_text_box(slide, 7.0, 3.8, 5.5, 0.5, "✅ 解法", font_size=20, bold=True, color=SPRING_GREEN)
-    add_text_box(slide, 7.2, 4.5, 5.2, 1.2, solution.get(emoji, ""), font_size=14, color=SPRING_DARK)
-
-# Components summary grid
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "🧩 六大组件速查", font_size=28, bold=True)
-for i, (emoji, name, metaphor, _) in enumerate(components):
-    row = i // 3
-    col = i % 3
-    x = 0.8 + col * 4.1
-    y = 1.6 + row * 2.8
-    shape = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, Inches(x), Inches(y), Inches(3.8), Inches(2.4))
-    shape.fill.solid(); shape.fill.fore_color.rgb = WHITE
-    shape.line.color.rgb = RGBColor(0xE0, 0xE0, 0xE0); shape.line.width = Pt(1)
-    add_text_box(slide, x + 0.3, y + 0.2, 3.2, 0.7, f"{emoji} {name}", font_size=18, bold=True, alignment=PP_ALIGN.CENTER)
-    add_text_box(slide, x + 0.3, y + 1.0, 3.2, 0.5, f"「{metaphor}」", font_size=14, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
-add_text_box(slide, 0.8, 7.0, 11, 0.4, "六个组件，六个生活场景。你不需要会配置，但开会时不会一脸懵。",
-             font_size=16, bold=True, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
-
-# ========== CH11: 产品视角 ==========
-add_chapter_slide("产品视角", "11", "微服务不是免费的午餐 · ~8min")
-
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "❓ 拆之前，先问三个问题", font_size=28, bold=True)
-questions = [
-    ("① 有独立的业务边界吗？", "不是\"功能多\"就该拆。订单和订单详情是同一个边界。"),
-    ("② 需要独立扩容吗？", "双十一只有订单要加机器，用户不用——才值得拆。"),
-    ("③ 有独立团队维护吗？", "一个团队维护3个微服务 = 分布式单体，更复杂还没拿到好处。"),
-]
-for i, (q, detail) in enumerate(questions):
-    y = 1.5 + i * 1.7
-    add_text_box(slide, 1.2, y, 10, 0.6, q, font_size=24, bold=True, color=SPRING_DARK)
-    add_text_box(slide, 1.6, y + 0.7, 10, 0.5, detail, font_size=16, color=GRAY)
-add_text_box(slide, 1.2, 6.3, 10, 0.6, "每拆一个服务，运维成本就多一份。拆之前，先问这三个问题。",
-             font_size=20, bold=True, color=SPRING_GREEN, alignment=PP_ALIGN.CENTER)
-
-# ========== CH12: 总结 ==========
-add_chapter_slide("课程总结 + Q&A", "12", "~10min")
-
-add_card_slide("🚗 你最该带走的三件事", [
-    ("🚗", "Spring Boot = 自动挡", "学过的 Spring 全部有效\n只是不需要 XML 配置了"),
-    ("📋", "15 条审查清单", "你不会写，但你会查\nAI 写代码，你质检"),
-    ("🏗️", "Cloud 六道保险", "拆之前先三问\n不是免费的午餐"),
-])
-
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, WHITE)
-add_text_box(slide, 0.8, 0.4, 11, 0.8, "📝 课后资料", font_size=28, bold=True, alignment=PP_ALIGN.CENTER)
-items = [
-    "📂 Demo 源码：demo/",
-    "▶️ 启动命令：cd demo && mvn spring-boot:run",
-    "📄 大纲 & 逐字稿：docs/",
-    "🌐 Spring Initializr：start.spring.io",
-    "📋 AI 审查清单 —— 见大纲第7章",
-]
-for i, t in enumerate(items):
-    add_text_box(slide, 3, 1.8 + i * 0.9, 7, 0.6, t, font_size=20, color=SPRING_DARK, alignment=PP_ALIGN.LEFT)
-
-# Q&A slide
-slide = prs.slides.add_slide(prs.slide_layouts[6])
-add_bg(slide, DARK_BG)
-add_text_box(slide, 1, 2.5, 11, 1.5, "Q & A", font_size=64, bold=True, color=WHITE, alignment=PP_ALIGN.CENTER)
-add_text_box(slide, 1, 4.5, 11, 0.8, "有什么想问的？", font_size=28, color=RGBColor(0xCC,0xCC,0xCC), alignment=PP_ALIGN.CENTER)
+s = prs.slides.add_slide(prs.slide_layouts[6]); bg(s, DB)
+tb(s, 1, 2.5, 11, 1.5, "Q & A", 64, True, W, PP_ALIGN.CENTER)
+tb(s, 1, 4.5, 11, .8, "有什么问题？", 28, False, RGBColor(0xCC,0xCC,0xCC), PP_ALIGN.CENTER)
 
 # Save
-output_path = '/Users/lihg/MyOpenCodeProject/springboot-learning/docs/slides.pptx'
-prs.save(output_path)
-print(f"✅ PPTX saved: {output_path}")
-print(f"   Slides: {len(prs.slides)}")
+out = '/Users/lihg/MyOpenCodeProject/springboot-learning/docs/slides.pptx'
+prs.save(out)
+print(f"Saved: {out} ({len(prs.slides)} slides)")
