@@ -1,0 +1,52 @@
+# =============================================================
+# Spring Boot 配置文件 —— 整个应用唯一的外部配置文件
+# =============================================================
+# 📖 对比传统 Spring MVC：
+#    以前分散在 web.xml、applicationContext.xml、spring-mvc.xml、
+#    mybatis-config.xml... 现在一个 YAML 文件全搞定
+# =============================================================
+
+server:
+  port: 8080  # 内嵌 Tomcat 端口，默认就是 8080
+
+spring:
+  application:
+    name: springboot-learning-demo
+
+  # ===== 数据源（H2 内存数据库，演示用，零安装） =====
+  # 生产环境只需要改这里的 driver-class-name 和 url
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:demo;MODE=MYSQL;DB_CLOSE_DELAY=-1  # MODE=MYSQL 兼容 MySQL 语法
+    username: sa
+    password:
+
+  # ===== H2 内置 Web 控制台（开发调试用） =====
+  # 访问地址：http://localhost:8080/h2-console
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  # ===== 启动时自动执行 SQL 脚本 =====
+  sql:
+    init:
+      mode: always  # 每次启动都执行（演示用；生产记得改 never）
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+
+# ===== MyBatis Plus 日志（开发时看 SQL 很直观） =====
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # SQL 打印到控制台
+  global-config:
+    db-config:
+      logic-delete-field: deleted    # 逻辑删除字段
+      logic-delete-value: 1          # 已删除的值
+      logic-not-delete-value: 0      # 未删除的值
+      id-type: auto                  # 主键自增
+
+# ===== 自定义配置（演示 @Value 注解取值） =====
+app:
+  name: 员工管理系统
+  version: 1.0.0
