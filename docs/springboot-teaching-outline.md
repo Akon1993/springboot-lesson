@@ -8,18 +8,18 @@
 
 # 上半场：Spring Boot 实操（~95min）
 
-## 第1章：从 Spring MVC 到 Spring Boot —— 演进之路（~15min）
+## 第1章：从 Spring MVC 到 Spring Boot —— 演进之路 + demo1（~35min）
 
-> 先看结果，再讲原理。打开 demo1，让它跑起来，然后对比传统方式——"你省掉了什么"。
+> 用 demo1 一条线串到底：打开工程 → 看代码 → 跑起来 → 对比传统方式 → 拆解注解 → 总结概念。
 
 ### 1.1 快速回顾（1min）
-- Spring = IoC 容器；Spring MVC = Web 框架；你认识了 `@Controller`、`@Service`、`@Autowired`
+- Spring = IoC 容器；Spring MVC = Web 框架；认识了 `@Controller`、`@Service`、`@Autowired`
 
-### 1.2 🔌 先看结果——打开 demo1-initializer
+### 1.2 🔌 打开 demo1-initializer
 
-[打开 IDE，展示 demo1 目录结构和关键代码]
+[打开 IDE，展示目录和代码]
 
-**依赖：** 只有核心 starter，不含 Web，不含数据库。
+**依赖：** 仅 `spring-boot-starter` + `spring-boot-starter-aop`，不含 Web，不含数据库。
 
 **4 个文件：**
 ```
@@ -29,137 +29,88 @@ ChineseGreetingService.java  ← @Service 实现
 LoggingAspect.java           ← @Aspect 切面
 ```
 
-**代码要点快速过：**
-- `ChineseGreetingService` 加了 `@Service`，通过构造器注入到 `Demo1Application`
-- `LoggingAspect` 加了 `@Aspect`，拦截 service 方法打印耗时
-- 没有任何 XML，没有 `web.xml`，没有 `applicationContext.xml`
+关键代码：ChineseGreetingService 加了 `@Service`，通过构造器注入到 Demo1Application。LoggingAspect 加了 `@Aspect`，拦截 service 方法打印耗时。没有任何 XML。
 
 [终端运行]
 ```bash
 mvn spring-boot:run   # 0.4 秒启动
 ```
-控制台输出：
 ```
 你好，产品团队！欢迎来到 Spring Boot 的世界。
 [AOP] greet 执行耗时: 2ms
 ```
 
-IoC 在工作。AOP 也在工作。0.4 秒。
+IoC 在工作，AOP 也在工作，0.4 秒，零行 XML。
 
-### 1.3 对比——以前你要写什么？
+### 1.3 对比——传统方式要写什么
 
-**同样的 IoC + AOP 效果，传统 Spring 需要在 XML 里写：**
+同样的 IoC + AOP，传统 Spring 需要：
 
 ```xml
-<!-- applicationContext.xml：必须显式告诉 Spring 去哪扫、开启注解 -->
 <context:component-scan base-package="com.example.service"/>
 <context:annotation-config/>
 ```
 
-就这两行，但每个项目都要写。而且包名一改、路径一变，就得跟着改。
+每个项目都要写，包名变了得跟着改。而 demo1 零行 XML。
 
-**而 demo1：0 行 XML。** `@SpringBootApplication` 一个注解，默认从启动类所在包开始扫描，`@Autowired` 自动生效。0.4 秒跑起来。
+> web.xml、spring-mvc.xml 那 80+ 行是 Web 层的——demo1 没有 Web，不需要。后面加了 Web Starter 再对比。
 
-> 至于 `web.xml`、`spring-mvc.xml` 那些——那是 Web 层的东西。demo1 根本没有 Web 模块，当然不需要。等到了 demo2，我们会看到 Spring Boot 怎么干掉那 80+ 行 XML。
+### 1.4 拆解 @SpringBootApplication
 
-### 1.4 Spring Boot 的答案："约定大于配置"
+回到刚才的 Demo1Application.java。`@SpringBootApplication` 包含了三个注解：
 
-**"配置"** = 你告诉框架每一个细节。**"约定"** = 框架说"你按规矩来，细节不用告诉我"。
+| 注解 | 作用 | 上节课 |
+|------|------|--------|
+| `@Configuration` | 标记配置类，可定义 Bean | 涉及 |
+| `@ComponentScan` | 扫描当前包及子包下组件 | 涉及 |
+| `@EnableAutoConfiguration` | **自动配置——Spring Boot 的灵魂** | 🆕 |
 
-> 你引入 Spring Boot，不写端口配置。启动——8080 已经在监听了。你想改？`server.port=9090` 一行。你没写？默认 8080。
->
-> **把每个人都要写的东西变成默认就有的。想改可以改，不改就能用。** 这就是约定大于配置。
+前两个上节课学过。第三个是 Spring Boot 独有的。
 
-### 1.5 Spring Boot 是什么
+### 1.5 自动配置与两条约定
+
+> 传统 Spring = 毛坯房；Spring Boot = 精装修公寓。拎包入住，不满意可以改。
+
+**约定一：默认扫描位置。** `@ComponentScan` 从启动类所在包向下扫描所有子包。Demo1Application 在 `com.example.demo1`，`service/`、`aspect/` 下的类自动被发现。不需要 `<context:component-scan base-package="..."/>`。类放包外则扫不到，需显式配。
+
+**约定二：注解自动生效。** 传统 Spring 需要 `<context:annotation-config/>` 开启注解处理。Spring Boot 自动开启——`@Autowired` 直接生效。
+
+条件装配的规则：你需要 + 没自己配 → 我来；你不需要 / 你配了 → 我靠边。
+
+### 1.6 "约定大于配置"总结
+
+**"配置"** = 你告诉框架每一个细节。**"约定"** = 框架预设默认行为，按规矩来就自动生效。
+
+> 不写端口配置→8080 已监听。想改 `server.port=9090`，没写就默认。
+> 把每个人都要写的东西变成默认就有的。想改可以改，不改就能用。
+
+### 1.7 Spring Boot 是什么
 
 | 痛点 | 解法 |
 |------|------|
-| 手写 XML 配置 | **自动配置** — 约定好了，不用你写 |
-| 6~8 个依赖 | **Starter 套餐** — 一个依赖搞定一组功能 |
-| 装 Tomcat 打 WAR | **内嵌 Tomcat** — `java -jar` 直接跑 |
-| 搭环境半天 | **Spring Initializr** — 30 秒生成项目 |
+| 手写 XML 配置 | 自动配置 — 约定好了，不用写 |
+| 6~8 个依赖 | Starter 套餐 — 一个依赖一组功能 |
+| 装 Tomcat 打 WAR | 内嵌 Tomcat — `java -jar` 直接跑 |
+| 搭环境半天 | Spring Initializr — 30 秒生成项目 |
 
-> **Spring Boot = Spring + Spring MVC + 自动配置 + 内嵌服务器。** 它是 Spring 的"自动挡"。
+> Spring Boot = Spring + Spring MVC + 自动配置 + 内嵌服务器。它是 Spring 的"自动挡"。
 
-### 1.6 演进全景图
+### 1.8 演进全景图
 
 ```
 Java Servlet → Spring Framework → Spring MVC → Spring Boot → Spring Cloud
                                     ↑ 上节课         ↑ 本节课上半场      ↑ 本节课下半场
 ```
 
----
-
-## 第2章：核心机制 + demo1 —— IoC / AOP 层（~20min）
-
-> 只讲容器层。用 demo1 验证：不配任何 XML，IoC 和 AOP 照常工作。
-
-### 2.1 一个注解背后的魔法
-
-```java
-@SpringBootApplication  // ← 三合一
-public class DemoApplication {
-    public static void main(String[] args) {
-        SpringApplication.run(DemoApplication.class, args);
-    }
-}
-```
-
-| 拆解 | 作用 | 学过？ |
-|------|------|--------|
-| `@Configuration` | 可以定义 Bean | ✅ 学过的 |
-| `@ComponentScan` | 扫描当前包及子包下所有组件 | ✅ 学过的 |
-| `@EnableAutoConfiguration` | **自动配置——Spring Boot 的灵魂** | 🆕 |
-
-### 2.2 自动配置——「精装修公寓」
-
-> 传统 Spring = 毛坯房（墙自己刷、线自己铺）；Spring Boot = 精装修（拎包入住，不满意可以改）。
-
-你不用告诉 Spring Boot "帮我开启 IoC 容器"、"帮我扫描 @Service 注解"——`@SpringBootApplication` 一个注解，这些全自动做了。
-
-**约定一：默认扫描位置。** `@ComponentScan` 默认从启动类所在包开始，向下扫描所有子包。demo1 的启动类在 `com.example.demo1`，所以 `service/`、`aspect/` 下的 `@Service`、`@Aspect` 自动被发现。你把类放到 `com.example.other` 下面？那就扫不到了——除非你显式配置。
-
-**约定二：注解自动生效。** 传统 Spring 需要在 XML 里显式开启 `<context:annotation-config/>`，`@Autowired`、`@Service` 这些注解才能工作。Spring Boot 自动帮你开了——你写 `@Autowired`，它就直接生效，不需要任何 XML 开关。
-
-条件装配的规则：你需要 + 你没自己配 → 我来。你不需要 / 你配了 → 我靠边站。
-
-### 2.3 🔌 打开 demo1-initializer —— 验证
-
-**依赖：** 仅 `spring-boot-starter` + `spring-boot-starter-aop`（核心 Starter，不含 Web，不含数据库）
-
-**代码结构：**
-```
-demo1-initializer/
-├── pom.xml                          ← 只有核心 starter，没有 web，没有数据库
-└── src/main/java/com/example/demo1/
-    ├── Demo1Application.java        ← @SpringBootApplication + CommandLineRunner
-    ├── service/
-    │   ├── GreetingService.java     ← 接口
-    │   └── impl/
-    │       └── ChineseGreetingService.java ← @Service 实现
-    └── aspect/
-        └── LoggingAspect.java       ← @Aspect + @Around
-```
-
-**演示要点：**
-
-| 知识点 | 怎么验证 | 可见输出 |
-|--------|---------|---------|
-| IoC 容器 | `GreetingService` 接口 + `@Service` 实现 + 构造器注入 | 控制台打印问候语 |
-| AOP 切面 | `@Aspect` 拦截 service 方法，打印执行耗时 | `[AOP] greet 执行耗时: 2ms` |
-
-**讲解节奏：**
-1. "上节课讲过 IoC 和 AOP。在 Spring Boot 里照常工作——但注意：你写 `web.xml` 了吗？没有。你配 `applicationContext.xml` 了吗？也没有。`@SpringBootApplication` 一个注解全搞定了。"
-2. `mvn spring-boot:run` → 0.4 秒启动 → 控制台看到注入结果 + AOP 日志
-3. "这个工程不能对外提供 HTTP 服务。下一步：加一个依赖会怎样？"
+> "demo1 没有 Web 能力。加一个依赖会怎样？" → 进入第2章
 
 ---
 
-## 第3章：Web 层实战 + demo2-web（~30min）⭐ 承上启下核心章
+## 第2章：Web 层实战 + demo2-web（~30min）⭐ 承上启下核心章
 
 > 只讲 Web 层。**这里是与上节课 Spring MVC 内容的衔接点。** 控制台程序 → Web 服务，全靠一个 starter。
 
-### 3.1 demo2 比 demo1 多了什么？
+### 2.1 demo2 比 demo1 多了什么？
 
 demo2 的 pom.xml 只比 demo1 多了一行：
 
@@ -174,7 +125,7 @@ demo2 的 pom.xml 只比 demo1 多了一行：
 
 demo2 新增代码只有 controller 和 common 包；service 和 aspect 跟 demo1 一模一样。
 
-### 3.2 上节课回顾——传统 Spring MVC 要写什么
+### 2.2 上节课回顾——传统 Spring MVC 要写什么
 
 同样的 Web 能力，传统方式需要 3 个 XML 文件，80+ 行配置：
 
@@ -220,7 +171,7 @@ demo2 新增代码只有 controller 和 common 包；service 和 aspect 跟 demo
 
 然后还要：装 Tomcat → 打 WAR → 丢 webapps → 重启。
 
-### 3.3 ⭐ 承上启下——上节课讲的 vs Spring Boot 做的
+### 2.3 ⭐ 承上启下——上节课讲的 vs Spring Boot 做的
 
 | 上节课讲过（传统 Spring MVC） | Spring Boot | 还需要吗？ |
 |------|------|------|
@@ -232,7 +183,7 @@ demo2 新增代码只有 controller 和 common 包；service 和 aspect 跟 demo
 
 > **金句：** "上节课教的 @Controller 怎么用——照用。web.xml 怎么配——不用了。"
 
-### 3.4 第一个 REST API
+### 2.4 第一个 REST API
 
 ```java
 @RestController  // = @Controller + @ResponseBody，返回 JSON
@@ -247,7 +198,7 @@ public class GreetingController {
 }
 ```
 
-### 3.5 统一响应 Result\<T\>
+### 2.5 统一响应 Result\<T\>
 
 写了 Controller 自然引入——"但返回格式不统一怎么办？"
 
@@ -257,7 +208,7 @@ public class GreetingController {
 
 所有接口统一这个格式。前端只需判断 `code === 200`。
 
-### 3.6 统一异常处理
+### 2.6 统一异常处理
 
 "如果用户查了一个不存在的资源怎么办？"
 
@@ -273,7 +224,7 @@ public class GlobalExceptionHandler {
 
 Controller 里不用写任何 try-catch。一个类全局搞定。
 
-### 3.7 运行验证
+### 2.7 运行验证
 
 ```bash
 cd demo2-web && mvn spring-boot:run
@@ -285,15 +236,15 @@ curl 'http://localhost:8080/api/greeting?name=产品团队'
 
 ---
 
-## 第4章：数据层实战 + demo3-data（~30min）
+## 第3章：数据层实战 + demo3-data（~30min）
 
 > 只讲数据层。再加两个依赖，Web 服务变完整后端。
 
-### 4.1 demo3 比 demo2 多了什么？
+### 3.1 demo3 比 demo2 多了什么？
 
 pom.xml 多了两行：`mybatis-plus-spring-boot3-starter` + `h2`。
 
-### 4.2 MyBatis Plus —— 数据层的"约定大于配置"
+### 3.2 MyBatis Plus —— 数据层的"约定大于配置"
 
 **Entity —— 一个类对应一张表：**
 
@@ -321,7 +272,7 @@ public interface EmployeeMapper extends BaseMapper<Employee> {
 
 > 传统 MyBatis：每表 10 条 SQL。MyBatis Plus：继承一个接口，完事。
 
-### 4.3 条件查询与分页
+### 3.3 条件查询与分页
 
 ```java
 LambdaQueryWrapper<Employee> wrapper = new LambdaQueryWrapper<>();
@@ -334,7 +285,7 @@ employeeMapper.selectPage(page, wrapper);
 // 自动返回 records、total、current、pages
 ```
 
-### 4.4 配置管理 —— 21 行 XML → 5 行 YAML
+### 3.4 配置管理 —— 21 行 XML → 5 行 YAML
 
 ```yaml
 # Spring Boot：5 行
@@ -349,7 +300,7 @@ spring:
 
 **换 MySQL？** 改 3 行配置，代码不动。**多环境？** `application-dev.yml` / `application-prod.yml`，一行切换。
 
-### 4.5 完整代码结构
+### 3.5 完整代码结构
 
 ```
 demo3-data/
@@ -366,7 +317,7 @@ demo3-data/
         └── db/schema.sql + data.sql
 ```
 
-### 4.6 运行验证
+### 3.6 运行验证
 
 ```bash
 cd demo3-data && mvn spring-boot:run     # < 1 秒，SQL 自动执行
@@ -384,7 +335,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 打开 `http://localhost:8080/h2-console` → 看到自动建表和 9 条测试数据。
 
-### 4.7 三阶段小结
+### 3.7 三阶段小结
 
 | | demo1 | demo2 | demo3 |
 |------|------|------|------|
@@ -396,11 +347,11 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 ---
 
-# 下半场：Spring Cloud 理论（~48min）
+# 下半场：Spring Cloud 理论（~48min，共4章）
 
-## 第5章：从单体到微服务——为什么需要 Spring Cloud（~12min）
+## 第4章：从单体到微服务——为什么需要 Spring Cloud（~12min）
 
-### 5.1 一个电商系统的一生
+### 4.1 一个电商系统的一生
 
 **创业第一天（单体）：** 订单、用户、商品全在一个工程。`java -jar shop.jar`，真爽。
 
@@ -410,13 +361,13 @@ curl localhost:8080/api/employees/999                     # 异常处理
 - 改一行代码 → 全站重新部署（"换个灯泡拉整栋楼电闸"）
 - 一个模块挂了 → 全站崩溃（"一个房间短路，整栋楼停电"）
 
-### 5.2 微服务的答案——拆
+### 4.2 微服务的答案——拆
 
 > "把一个超级工程拆成几十个小工程，每个独立开发、独立部署、独立扩容。"
 
 **类比：** 单体 = 所有人一个大开间；微服务 = 按部门分楼层，各管各的。
 
-### 5.3 拆完的新问题
+### 4.3 拆完的新问题
 
 - 订单服务要调用户服务——**怎么找到它在哪？**
 - 前端要调 30 个服务——**难道记 30 个地址？**
@@ -427,11 +378,11 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 ---
 
-## 第6章：Spring Cloud 六大组件（~28min）
+## 第5章：Spring Cloud 六大组件（~28min）
 
 > 贯穿比喻：外卖平台——用户/订单/商家/配送/支付各是独立微服务。每个组件解决平台中的一个真实问题。
 
-### 6.1 注册中心 Nacos ——「配送调度中心」📒
+### 5.1 注册中心 Nacos ——「配送调度中心」📒
 
 **外卖场景：** 用户下单后，订单服务需要通知配送服务找骑手。配送服务跑在 3 台机器上，订单服务怎么知道该找哪台？写死 IP？扩容就炸。
 
@@ -439,7 +390,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 > 骑手上线打卡——平台知道谁在线。你下单，平台自动分配空闲骑手。Nacos 就是配送调度中心。
 
-### 6.2 API 网关 Gateway ——「外卖 App 统一后台」🏢
+### 5.2 API 网关 Gateway ——「外卖 App 统一后台」🏢
 
 **外卖场景：** App 首页要调商家服务、购物车调订单服务、结算调支付服务。让 App 记住 3 个地址？而且每个服务都要做登录验证——重复、不一致。
 
@@ -447,7 +398,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 > 你打开外卖 App，不会直接连商家数据库和支付系统——你只跟 App 后台交互。Gateway 就是这个统一后台。
 
-### 6.3 配置中心 Nacos Config ——「商家后台统一改价」☁️
+### 5.3 配置中心 Nacos Config ——「商家后台统一改价」☁️
 
 **外卖场景：** 配送费规则从"3 公里内 5 元"改成"3 公里内 4 元，每超 1 公里加 1 元"。订单服务和配送服务都在用这个规则——改两个配置、重启两个服务？
 
@@ -455,7 +406,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 > 商家在后台改菜价——App 立刻显示新价格。配置中心就是这个后台管理系统。
 
-### 6.4 服务调用 Feign ——「一键支付」📞
+### 5.4 服务调用 Feign ——「一键支付」📞
 
 **外卖场景：** 用户点"提交订单"，订单服务要依次调用用户服务（验证地址）、商家服务（确认库存）、支付服务（扣款）。手写三次 HTTP 调用——每次十几行代码。
 
@@ -463,7 +414,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 > 你在 App 点"微信支付"，App 帮你调起微信——不用自己打开微信输金额。Feign 就是那个一键调用。
 
-### 6.5 熔断降级 Sentinel ——「支付挂了，货到付款兜底」⚡
+### 5.5 熔断降级 Sentinel ——「支付挂了，货到付款兜底」⚡
 
 **外卖场景：** 支付服务挂了。订单服务还在不停调它——每次超时等 3 秒，1000 个请求全堵在等待。订单服务也被拖死。商家服务调订单——也挂了。**级联故障，全站崩溃。** 商家正常营业，骑手也在线，但 App 白屏。
 
@@ -471,7 +422,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 > 一家店停电关门——平台暂时下架，你不会点进去发现点不了。Sentinel 就是这个自动下架机制。
 
-### 6.6 链路追踪 Sleuth / Zipkin ——「外卖物流追踪」📦
+### 5.6 链路追踪 Sleuth / Zipkin ——「外卖物流追踪」📦
 
 **外卖场景：** 用户投诉"下单等了 10 秒"。一个请求跨了 Gateway → 订单 → 用户 → 商家 → 支付。5 个服务，到底谁慢了？每个服务有自己的日志，但没有关联——拼不出完整链路。
 
@@ -479,7 +430,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 > 快递慢了——看物流轨迹："到达分拨中心 10:00，离开 18:00"。卡了 8 小时，破案。Zipkin 就是给每个请求发的快递单号。
 
-### 6.7 速查表
+### 5.7 速查表
 
 | 外卖场景 | 对应组件 | 一句话 |
 |---------|---------|------|
@@ -492,9 +443,9 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 ---
 
-## 第7章：产品视角——微服务不是免费的午餐（~8min）
+## 第6章：产品视角——微服务不是免费的午餐（~8min）
 
-### 7.1 拆服务的代价
+### 6.1 拆服务的代价
 
 | 好处 | 代价 |
 |------|------|
@@ -502,7 +453,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 | 独立扩容 | 分布式事务，复杂 10 倍 |
 | 团队自治 | HTTP 调用有延迟 |
 
-### 7.2 拆之前，先问三个问题
+### 6.2 拆之前，先问三个问题
 
 1. ❓ **有独立的业务边界吗？** 不是"功能多"就该拆。
 2. ❓ **需要独立扩容吗？** 双十一只有订单要加机器——才值得拆。
@@ -512,7 +463,7 @@ curl localhost:8080/api/employees/999                     # 异常处理
 
 ---
 
-## 第8章：课程总结 + Q&A（~10min）
+## 第7章：课程总结 + Q&A（~10min）
 
 ### 今天讲了什么
 

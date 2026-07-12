@@ -60,17 +60,17 @@
   <h3>课程安排</h3>
   <div class="compare">
     <div class="good-box"><h4>上半场：Spring Boot 实操</h4>
-      <p style="font-size:.7em">Ch1 演进之路 → Ch2 核心机制+demo1 → Ch3 Web层+demo2 → Ch4 数据层+demo3</p>
+      <p style="font-size:.7em">Ch1 演进之路+demo1 → Ch2 Web层+demo2 → Ch3 数据层+demo3</p>
       <p class="small">~95min</p></div>
     <div class="good-box"><h4>下半场：Spring Cloud 理论</h4>
-      <p style="font-size:.7em">Ch5 为什么微服务 → Ch6 六大组件 → Ch7 产品视角 → Ch8 总结</p>
+      <p style="font-size:.7em">Ch4 为什么微服务 → Ch5 六大组件 → Ch6 产品视角 → Ch7 总结</p>
       <p class="small">~48min</p></div>
   </div>
   <p style="font-size:.7em;margin-top:16px">前置：上节课已讲 Spring IoC/DI、Spring MVC 请求处理流程、Maven 基础</p>
 </section>
 
 <!-- ====== CH1 ====== -->
-<section class="chapter"><div class="num">01</div><h2>从 Spring MVC 到 Spring Boot</h2><p>演进之路 · ~15min</p></section>
+<section class="chapter"><div class="num">01</div><h2>从 Spring MVC 到 Spring Boot</h2><p>演进之路 + demo1 · ~35min</p></section>
 
 <section>
   <h3>1.1 快速回顾（上节课）</h3>
@@ -148,8 +148,7 @@ public class LoggingAspect {
                                 ↑ 上节课         ↑ 本节课上半场      ↑ 本节课下半场</pre>
 </section>
 
-<!-- ====== CH2 ====== -->
-<section class="chapter"><div class="num">02</div><h2>核心机制 + demo1</h2><p>IoC / AOP 层 · ~20min</p></section>
+
 
 <section>
   <h3>2.1 @SpringBootApplication 三合一</h3>
@@ -179,7 +178,7 @@ public class Demo1Application {
 </section>
 
 <!-- ====== CH3 ====== -->
-<section class="chapter"><div class="num">03</div><h2>Web 层实战 + demo2-web</h2><p>承上启下核心章 · ~30min</p></section>
+<section class="chapter"><div class="num">02</div><h2>Web 层实战 + demo2-web</h2><p>承上启下核心章 · ~30min</p></section>
 
 <section>
   <h3>3.1 demo2 比 demo1 多了一个依赖</h3>
@@ -274,7 +273,7 @@ curl 'http://localhost:8080/api/greeting?name=产品团队'
 </section>
 
 <!-- ====== CH4 ====== -->
-<section class="chapter"><div class="num">04</div><h2>数据层实战 + demo3-data</h2><p>~30min</p></section>
+<section class="chapter"><div class="num">03</div><h2>数据层实战 + demo3-data</h2><p>~30min</p></section>
 
 <section>
   <h3>4.1 demo3 比 demo2 多了两个依赖</h3>
@@ -364,7 +363,7 @@ curl localhost:8080/api/employees/999                    # 异常：{"code":400,
 </section>
 
 <!-- ====== CH5 ====== -->
-<section class="chapter"><div class="num">05</div><h2>从单体到微服务</h2><p>为什么需要 Spring Cloud · ~12min</p></section>
+<section class="chapter"><div class="num">04</div><h2>从单体到微服务</h2><p>为什么需要 Spring Cloud · ~12min</p></section>
 
 <section>
   <h3>5.1 单体架构的困境</h3>
@@ -390,7 +389,7 @@ curl localhost:8080/api/employees/999                    # 异常：{"code":400,
 </section>
 
 <!-- ====== CH6 ====== -->
-<section class="chapter"><div class="num">06</div><h2>Spring Cloud 六大组件</h2><p>~28min · 贯穿比喻：外卖平台</p></section>
+<section class="chapter"><div class="num">05</div><h2>Spring Cloud 六大组件</h2><p>~28min · 贯穿比喻：外卖平台</p></section>
 
 <section>
   <h3>6.1 Nacos 注册中心——配送调度中心</h3>
@@ -452,7 +451,7 @@ curl localhost:8080/api/employees/999                    # 异常：{"code":400,
 </section>
 
 <!-- ====== CH7 ====== -->
-<section class="chapter"><div class="num">07</div><h2>产品视角</h2><p>微服务不是免费的午餐 · ~8min</p></section>
+<section class="chapter"><div class="num">06</div><h2>产品视角</h2><p>微服务不是免费的午餐 · ~8min</p></section>
 
 <section>
   <h3>7.1 拆分的代价</h3>
@@ -473,7 +472,7 @@ curl localhost:8080/api/employees/999                    # 异常：{"code":400,
 </section>
 
 <!-- ====== CH8 ====== -->
-<section class="chapter"><div class="num">08</div><h2>课程总结 + Q&A</h2><p>~10min</p></section>
+<section class="chapter"><div class="num">07</div><h2>课程总结 + Q&A</h2><p>~10min</p></section>
 
 <section>
   <h3>今天的内容</h3>
